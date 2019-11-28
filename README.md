@@ -1,5 +1,5 @@
 # pubsub-couchbase-connect
- Thie code base relies on two OSS Projects.
+ Thie code base relies on following OSS Projects.
  1. Couchbase DCP Client - https://github.com/SolaceSamples/solace-samples-java for CB As Source
  2. Couchbase Java Client - https://docs.couchbase.com/java-sdk/current/start-using-sdk.html for CB As Sink
  2. Solace JCSMP Java Client - https://github.com/couchbase/java-dcp-client for Solace as Source/Sink
