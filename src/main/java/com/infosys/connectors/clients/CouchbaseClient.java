@@ -1,4 +1,4 @@
-package com.infosys.connectors.cbsink;
+package com.infosys.connectors.clients;
 
 /*
  * Copyright (c) 2016-2017 Couchbase, Inc.
@@ -21,30 +21,27 @@ import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
+import com.infosys.connectors.config.CouchbaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 
 /**
  * This example starts from the current point in time and publishes every change that happens.
  * This example is based on java-dcp-client provided by couchbase
  */
-public class CouchbaseAsSink {
+public class CouchbaseClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseAsSink.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseClient.class);
     private static Cluster cluster;
     private static Bucket bucket;
 
     public void startCluster(){
-        CouchbaseSinkConfig cbconfig = new CouchbaseSinkConfig();
-        Map config = cbconfig.getConfigProps();
-        String hostname = (String) config.get("HOST_NAME");
-        String user = (String) config.get("USER_NAME");
-        String pwd = (String) config.get("PASSWORD");
-        String bucketname = (String) config.get("BUCKET_NAME");
-        cluster = CouchbaseCluster.create(hostname);
-        cluster.authenticate(user,pwd);
-        bucket = cluster.openBucket(bucketname);
+        CouchbaseConfig cbConfig = new CouchbaseConfig();
+        cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
+        cluster.authenticate(cbConfig.getCbUsername(),cbConfig.getCbPassword());
+        bucket = cluster.openBucket(cbConfig.getCbBucket());
         bucket.bucketManager().createN1qlPrimaryIndex(true, false);
     }
 

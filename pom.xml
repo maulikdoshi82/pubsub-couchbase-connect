@@ -104,7 +104,7 @@
     </pluginManagement>
     <resources>
       <resource>
-        <directory>config</directory>
+        <directory>src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
     </resources>

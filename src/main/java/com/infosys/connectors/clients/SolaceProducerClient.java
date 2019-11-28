@@ -1,23 +1,19 @@
-package com.infosys.connectors.cbsource;
-import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
-import com.solacesystems.jcsmp.JCSMPSession;
-import com.solacesystems.jcsmp.JCSMPStreamingPublishEventHandler;
-import com.solacesystems.jcsmp.TextMessage;
-import com.solacesystems.jcsmp.Topic;
-import com.solacesystems.jcsmp.XMLMessageProducer;
+package com.infosys.connectors.clients;
+
+import com.infosys.connectors.config.SolaceSinkConfig;
+import com.solacesystems.jcsmp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SolaceAsSink {
+public class SolaceProducerClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SolaceAsSink.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SolaceProducerClient.class);
     private static XMLMessageProducer prod;
     private static Topic topic;
     private static JCSMPSession session;
     SolaceSinkConfig scconfig = new SolaceSinkConfig();
 
-    public SolaceAsSink(){
+    public SolaceProducerClient(){
         scconfig.setProperties();
     }
 

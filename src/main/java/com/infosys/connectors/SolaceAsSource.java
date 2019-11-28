@@ -22,14 +22,12 @@ package com.infosys.connectors;
 import java.util.concurrent.CountDownLatch;
 
 import com.couchbase.client.java.document.json.JsonObject;
-import com.infosys.connectors.cbsink.CouchbaseAsSink;
-import com.infosys.connectors.cbsink.SolaceSourceConfig;
+import com.infosys.connectors.clients.CouchbaseClient;
+import com.infosys.connectors.clients.SolaceReceiverClient;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.TextMessage;
-import com.solacesystems.jcsmp.Topic;
 import com.solacesystems.jcsmp.XMLMessageConsumer;
 import com.solacesystems.jcsmp.XMLMessageListener;
 import org.slf4j.Logger;
@@ -41,16 +39,13 @@ public class SolaceAsSource {
 
     public static void main(String[] args) throws JCSMPException {
 
-        CouchbaseAsSink cbSink = new CouchbaseAsSink();
-        SolaceSourceConfig solConfig = new SolaceSourceConfig();
-        solConfig.setProperties();
-        final Topic topic = JCSMPFactory.onlyInstance().createTopic(solConfig.getTopic());
-        final JCSMPSession session = JCSMPFactory.onlyInstance().createSession(solConfig.getProperties());
+        CouchbaseClient cbClient = new CouchbaseClient();
+        SolaceReceiverClient solClient = new SolaceReceiverClient();
+        JCSMPSession session = solClient.getSession();
         session.connect();
-        cbSink.startCluster();
+        cbClient.startCluster();
 
-        final CountDownLatch latch = new CountDownLatch(2); // used for
-        // synchronizing b/w threads
+        final CountDownLatch latch = new CountDownLatch(1); // used for synchronizing b/w threads
         /** Only supports JsonMessage for now. Key field should be added in the message */
         final XMLMessageConsumer cons = session.getMessageConsumer(new XMLMessageListener() {
             @Override
@@ -58,7 +53,7 @@ public class SolaceAsSource {
                 if (msg instanceof TextMessage) {
                     LOGGER.info("TextMessage received: " + ((TextMessage)msg).getText());
                     JsonObject jObj = JsonObject.fromJson(((TextMessage) msg).getText());
-                    cbSink.upsertDocument("test", jObj);
+                    cbClient.upsertDocument("test", jObj);
                     /** Acknowledging a message. Might be debatable **/
                     msg.ackMessage();
                     LOGGER.debug("Document saved in Couchbase::" + jObj.toString());
@@ -73,7 +68,7 @@ public class SolaceAsSource {
                 latch.countDown();  // unblock main thread
             }
         });
-        session.addSubscription(topic);
+        session.addSubscription(solClient.getTopic());
         LOGGER.info("Solace & Couchbase are connected. Awaiting message...");
         cons.start();
 
@@ -82,9 +77,19 @@ public class SolaceAsSource {
         } catch (InterruptedException e) {
             LOGGER.error("I was awoken while waiting");
         }
-        // Close consumer
-        cons.close();
-        cbSink.shutDownConnector();
-        session.closeSession();
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                LOGGER.info("Initiating Connector shutdown as SIGINT is called.");
+                // Close consumer
+                cons.close();
+                cbClient.shutDownConnector();
+                session.closeSession();
+                LOGGER.info("Connector shutdown. All clients disconnected");
+            }
+        });
+
     }
 }
