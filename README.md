@@ -22,7 +22,12 @@
  
  Or add the cb/java-client, solace/java-jscmp jars in the class path along with pubsub-couchbase-connect-1.0-SNAPSHOT.jar and run com.infosys.connectors.SolaceAsSource class.
  
+ Couchbase As Sink/Solace As Source connector currently stores only one record in the Couchbase with id as "test". 
  
 Tip: You may run both together if only one topic is provided for Solace As Sink and Solace As Source. Do remember to keep a different bucket for Couchbase or else it'll go in infinite loop.
+
+#Future Scope
+1. Running the connector in distributed mode.
+2. Finding the "eternal" key to storing multiple records in couchbase (Sink).
 
 Contributions/Issues/Suggestions are welcome.
