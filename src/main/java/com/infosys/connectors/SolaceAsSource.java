@@ -37,59 +37,65 @@ public class SolaceAsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceAsSource.class);
 
-    public static void main(String[] args) throws JCSMPException {
+    public static void main(String[] args) {
 
         CouchbaseClient cbClient = new CouchbaseClient();
         SolaceReceiverClient solClient = new SolaceReceiverClient();
-        JCSMPSession session = solClient.getSession();
-        session.connect();
-        cbClient.startCluster();
+        boolean isCbConnected = cbClient.startCluster();
+        if (isCbConnected) {
+            try {
+                JCSMPSession session = solClient.getSession();
+                session.connect();
+                final CountDownLatch latch = new CountDownLatch(1); // used for synchronizing b/w threads
+                /** Only supports JsonMessage for now. Key field should be added in the message */
+                final XMLMessageConsumer cons = session.getMessageConsumer(new XMLMessageListener() {
+                    @Override
+                    public void onReceive(BytesXMLMessage msg) {
+                        if (msg instanceof TextMessage) {
+                            LOGGER.info("TextMessage received: " + ((TextMessage) msg).getText());
+                            JsonObject jObj = JsonObject.fromJson(((TextMessage) msg).getText());
+                            cbClient.upsertDocument("test", jObj);
+                            /** Acknowledging a message. Might be debatable **/
+                            msg.ackMessage();
+                            LOGGER.debug("Document saved in Couchbase::" + jObj.toString());
+                        } else {
+                            LOGGER.info("A non-Json message received. Ignored for now");
+                        }
+                    }
 
-        final CountDownLatch latch = new CountDownLatch(1); // used for synchronizing b/w threads
-        /** Only supports JsonMessage for now. Key field should be added in the message */
-        final XMLMessageConsumer cons = session.getMessageConsumer(new XMLMessageListener() {
-            @Override
-            public void onReceive(BytesXMLMessage msg) {
-                if (msg instanceof TextMessage) {
-                    LOGGER.info("TextMessage received: " + ((TextMessage)msg).getText());
-                    JsonObject jObj = JsonObject.fromJson(((TextMessage) msg).getText());
-                    cbClient.upsertDocument("test", jObj);
-                    /** Acknowledging a message. Might be debatable **/
-                    msg.ackMessage();
-                    LOGGER.debug("Document saved in Couchbase::" + jObj.toString());
-                } else {
-                    LOGGER.info("A non-Json message received. Ignored for now");
+                    @Override
+                    public void onException(JCSMPException e) {
+                        LOGGER.error("Consumer received exception", e);
+                        latch.countDown();  // unblock main thread
+                    }
+                });
+                session.addSubscription(solClient.getTopic());
+                LOGGER.info("Solace & Couchbase are connected. Awaiting message...");
+                cons.start();
+
+                try {
+                    latch.await(); // block here until message received, and latch will flip
+                } catch (InterruptedException e) {
+                    LOGGER.error("I was awoken while waiting");
                 }
+                Runtime.getRuntime().addShutdownHook(new Thread() {
+                    @Override
+                    public void run() {
+                        LOGGER.info("Initiating Connector shutdown as SIGINT is called.");
+                        // Close consumer
+                        cons.close();
+                        cbClient.shutDownConnector();
+                        session.closeSession();
+                        LOGGER.info("Connector shutdown. All clients disconnected");
+                    }
+                });
+            } catch (JCSMPException jex) {
+                LOGGER.info("An Exception occured while connecting to Solace. Solace may not be running");
+                if (LOGGER.isTraceEnabled()) jex.printStackTrace();
             }
-
-            @Override
-            public void onException(JCSMPException e) {
-                LOGGER.error("Consumer received exception",e);
-                latch.countDown();  // unblock main thread
-            }
-        });
-        session.addSubscription(solClient.getTopic());
-        LOGGER.info("Solace & Couchbase are connected. Awaiting message...");
-        cons.start();
-
-        try {
-            latch.await(); // block here until message received, and latch will flip
-        } catch (InterruptedException e) {
-            LOGGER.error("I was awoken while waiting");
         }
-        Runtime.getRuntime().addShutdownHook(new Thread()
-        {
-            @Override
-            public void run()
-            {
-                LOGGER.info("Initiating Connector shutdown as SIGINT is called.");
-                // Close consumer
-                cons.close();
-                cbClient.shutDownConnector();
-                session.closeSession();
-                LOGGER.info("Connector shutdown. All clients disconnected");
-            }
-        });
+        else{LOGGER.info("Couchbase is not connected. Shutting down connector");}
 
     }
+
 }

@@ -23,7 +23,7 @@ public class CouchbaseDcpClient {
                 .username(cbConfig.getCbUsername())
                 .password(cbConfig.getCbPassword())
                 .build();
-        LOGGER.debug("Client Set Requested" + cb_client.toString());
+        LOGGER.info("Client Set Requested");
         return cb_client;
     }
 }

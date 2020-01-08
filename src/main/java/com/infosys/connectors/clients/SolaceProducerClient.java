@@ -17,10 +17,10 @@ public class SolaceProducerClient {
         scconfig.setProperties();
     }
 
-    public void startSession() throws JCSMPException {
+    public boolean startSession()  {
+        try{
         session = JCSMPFactory.onlyInstance().createSession(scconfig.getProperties());
         session.connect();
-
         prod = session.getMessageProducer(new JCSMPStreamingPublishEventHandler() {
             @Override
             public void responseReceived(String messageID) {
@@ -29,12 +29,18 @@ public class SolaceProducerClient {
             @Override
             public void handleError(String messageID, JCSMPException e, long timestamp) {
                 LOGGER.error("Producer received error for msg:",
-                        new Object[]{messageID, timestamp, e});
+                        messageID, timestamp, e);
+                if(LOGGER.isTraceEnabled())
+                    e.printStackTrace();
             }
         });
         topic = JCSMPFactory.onlyInstance().createTopic(scconfig.getTopic());
         LOGGER.debug("Solace Connected. You can now send message to topic: " + topic.getName());
-
+    } catch (JCSMPException ConnEx){
+        LOGGER.error("Connection error occured " + ConnEx.getLocalizedMessage());
+        return false;
+    }
+        return true;
     }
 
 

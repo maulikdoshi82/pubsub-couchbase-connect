@@ -25,8 +25,6 @@ import com.infosys.connectors.config.CouchbaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
  * This example starts from the current point in time and publishes every change that happens.
  * This example is based on java-dcp-client provided by couchbase
@@ -37,12 +35,21 @@ public class CouchbaseClient {
     private static Cluster cluster;
     private static Bucket bucket;
 
-    public void startCluster(){
-        CouchbaseConfig cbConfig = new CouchbaseConfig();
-        cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
-        cluster.authenticate(cbConfig.getCbUsername(),cbConfig.getCbPassword());
-        bucket = cluster.openBucket(cbConfig.getCbBucket());
-        bucket.bucketManager().createN1qlPrimaryIndex(true, false);
+    public boolean startCluster(){
+        try {
+            CouchbaseConfig cbConfig = new CouchbaseConfig();
+            cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
+            cluster.authenticate(cbConfig.getCbUsername(), cbConfig.getCbPassword());
+            bucket = cluster.openBucket(cbConfig.getCbBucket());
+            bucket.bucketManager().createN1qlPrimaryIndex(true, false);
+            LOGGER.debug("Bucket Opened" + bucket.name());
+            return true;
+        }
+        catch(Exception ex)
+        {
+            LOGGER.info("Error occured while connecting to Couchbase");
+            return false;
+        }
     }
 
     public void shutDownConnector(){
