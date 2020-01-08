@@ -21,8 +21,7 @@ import rx.CompletableSubscriber;
 import rx.Subscription;
 
 /**
- * This example starts from the current point in time and publishes every change that happens.
- * This example is based on java-dcp-client provided by couchbase
+ * This sample connector is based on java-dcp-client provided by couchbase
  */
 public class CouchbaseAsSource {
 
@@ -32,12 +31,10 @@ public class CouchbaseAsSource {
         SolaceProducerClient solClient = new SolaceProducerClient();
         Client cbClient = new CouchbaseDcpClient().setClient();
         boolean SolConnect = solClient.startSession();
-        Boolean cbConnect = false;
         // Start solace session
         if (SolConnect) {
             try {
                 // If we are in a rollback scenario, rollback the partition and restart the stream.
-                LOGGER.info("Inside try");
                 cbClient.controlEventHandler(new ControlEventHandler() {
                     @Override
                     public void onEvent(final ChannelFlowController flowController, final ByteBuf event) {
@@ -87,8 +84,7 @@ public class CouchbaseAsSource {
                                         DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
                                     //content doesn't have the key.
-                                    //String message = "Key" + DcpMutationMessage.key(event);
-                                    String message = DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
+                                    //String message = DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
                                     solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                     LOGGER.info("Sent Message::" + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
@@ -112,15 +108,14 @@ public class CouchbaseAsSource {
 
                 // Initialize the state (start now, never stop)
                 cbClient.initializeState(StreamFrom.NOW, StreamTo.INFINITY).await();
-
+                LOGGER.trace("Session State" + cbClient.sessionState());
                 // Start streaming on all partitions
                 cbClient.startStreaming().await();
-                cbConnect = true;
                 LOGGER.info("Awaiting Stream");
 
 
             } catch (Exception ex) {
-                LOGGER.info("An exception occured:: " + ex.getMessage());
+                LOGGER.info("An exception occurred:: " + ex.getMessage());
                 if (cbClient.sessionState().equals(true)){
                     cbClient.stopStreaming();
                     cbClient.disconnect();
