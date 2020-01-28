@@ -45,6 +45,11 @@
       <version>1.8.0-alpha2</version>
     </dependency>
     <dependency>
+      <groupId>com.opencsv</groupId>
+      <artifactId>opencsv</artifactId>
+      <version>4.1</version>
+    </dependency>
+    <dependency>
       <groupId>com.solacesystems</groupId>
       <artifactId>sol-jcsmp</artifactId>
       <version>[10,)</version>

@@ -1,53 +1,32 @@
-package com.infosys.connectors.clients;
+package com.infosys.connectors;
 
-/*
- * Copyright (c) 2016-2017 Couchbase, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+import com.couchbase.client.core.config.ConfigurationException;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.couchbase.client.java.document.JsonDocument;
 import com.couchbase.client.java.document.json.JsonObject;
-import com.infosys.connectors.config.CouchbaseConfig;
+import com.couchbase.client.java.error.BucketDoesNotExistException;
+import com.couchbase.client.java.error.InvalidPasswordException;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
-import com.couchbase.client.core.config.ConfigurationException;
-import com.couchbase.client.java.error.*;
 
-/**
- * This example starts from the current point in time and publishes every change
- * that happens. This example is based on java-dcp-client provided by couchbase
- */
-public class CouchbaseClient {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseClient.class);
+public class CouchbaseMutator {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseMutator.class);
     private static Cluster cluster;
     private static Bucket bucket;
-
+    private static int NO_OF_MESSAGES = 10000;
     public boolean startCluster() {
-        CouchbaseConfig cbConfig = new CouchbaseConfig();
-        cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
-        cluster.authenticate(cbConfig.getCbUsername(), cbConfig.getCbPassword());
+        cluster = CouchbaseCluster.create("127.0.0.1");
+        cluster.authenticate("Administrator", "password");
         int i = 0;
-        for (i = 0; i < cbConfig.getNoOfRetry(); i++) {
+        for (i = 0; i < 3; i++) {
             try {
-                bucket = cluster.openBucket(cbConfig.getCbBucket(), cbConfig.getCbConnTimeout(), TimeUnit.MILLISECONDS);
+                bucket = cluster.openBucket("sample", 1000, TimeUnit.MILLISECONDS);
                 break;
             } catch (Exception ex) {
 
@@ -57,22 +36,22 @@ public class CouchbaseClient {
                 if (ex instanceof ConfigurationException) {
                     String cause = "" + ex.getCause();
                     if (cause.contains("Connection refused")) {
-                        LOGGER.error("Couchbase Server is not running @" + cbConfig.getCbHostname());
-                        i = cbConfig.getNoOfRetry();
+                        LOGGER.error("Couchbase Server is not running");
+                        i = 3;
                     } else {
                         LOGGER.error(ex.getMessage() + " cause" + ex.getCause());
                     }
                 } else if (ex instanceof InvalidPasswordException) {
                     LOGGER.error("Invalid Authentication for Couchbase Server. Please check User/Password.");
                 } else if (ex instanceof BucketDoesNotExistException) {
-                    LOGGER.error("Bucket does not exist::" + cbConfig.getCbBucket());
-                    i = cbConfig.getNoOfRetry();
+                    LOGGER.error("Bucket does not exist::");
+                    i = 3;
                 } else {
                     LOGGER.error("An exception is thrown " + ex.getMessage()
                             + " .For detailed root cause, enable Debug Mode");
                 }
 
-                if (i < cbConfig.getNoOfRetry()) {
+                if (i < 3) {
                     LOGGER.info("No of Attempt:: " + (i + 1) + " in " + (1000 * (i + 1)) + " Millis");
                     try {
                         Thread.sleep(1000 * (i + 1));
@@ -82,8 +61,7 @@ public class CouchbaseClient {
                 }
             }
         }
-        if (i < cbConfig.getNoOfRetry()) {
-            System.out.println("Did this work too?");
+        if (i < 3) {
             bucket.bucketManager().createN1qlPrimaryIndex(true, false);
             return true;
         }
@@ -97,11 +75,28 @@ public class CouchbaseClient {
 
     public void upsertDocument(String key, JsonObject doc) {
         try {
-            doc.put("cb_received_time", ("" + new Timestamp(System.currentTimeMillis())));
+            doc.put("cb_updated_time", ("" + new Timestamp(System.currentTimeMillis())));
             bucket.upsert(JsonDocument.create(key, doc));
         } catch (RuntimeException tex) {
             LOGGER.error("TimeOut");
         }
     }
 
+    public static void main(String  args[]){
+        CouchbaseMutator cbMutator = new CouchbaseMutator();
+        boolean cbCon = cbMutator.startCluster();
+        String key = "";
+        if(cbCon){
+            for (int i = 0; i < NO_OF_MESSAGES; i++) {
+                JSONObject obj = new JSONObject();
+                key = "" + i;
+                obj.put("key", key); // This is an important field.
+                obj.put("name", "foo");
+                obj.put("num", new Integer(100));
+                obj.put("balance", new Double(1000.21));
+                obj.put("is_vip", new Boolean(true));
+                cbMutator.upsertDocument(key,JsonObject.fromJson(obj.toJSONString()));
+            }
+        }
+    }
 }

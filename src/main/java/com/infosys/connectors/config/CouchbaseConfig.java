@@ -8,12 +8,16 @@ import java.util.Properties;
 
 public class CouchbaseConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseConfig.class);
-    private static String CB_HOSTNAME;
-    private static String CB_BUCKET;
-    private static String CB_USERNAME;
-    private static String CB_PASSWORD;
-    private static String appVersion;
-    private static String appName;
+    private String CB_HOSTNAME;
+    private String CB_BUCKET;
+    private String CB_USERNAME;
+    private String CB_PASSWORD;
+    private String appVersion;
+    private String appName;
+    private int NO_OF_RETRY;
+
+    private static int CB_CONN_TIMEOUT;
+
 
     public CouchbaseConfig() {
         String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
@@ -29,7 +33,8 @@ public class CouchbaseConfig {
 
             appVersion = appProps.getProperty("version");
             appName = appProps.getProperty("name");
-
+            NO_OF_RETRY = Integer.parseInt(connectorProps.getProperty("connection.retry"));
+            CB_CONN_TIMEOUT = Integer.parseInt(connectorProps.getProperty("connection.timeout.ms"));
             CB_HOSTNAME = connectorProps.getProperty("connection.cluster_address");
             CB_BUCKET = connectorProps.getProperty("connection.bucket");
             CB_USERNAME = connectorProps.getProperty("connection.username");
@@ -43,48 +48,32 @@ public class CouchbaseConfig {
         return CB_HOSTNAME;
     }
 
-    public void setCbHostname(String cbHostname) {
-        CB_HOSTNAME = cbHostname;
-    }
-
     public String getCbBucket() {
         return CB_BUCKET;
-    }
-
-    public void setCbBucket(String cbBucket) {
-        CB_BUCKET = cbBucket;
     }
 
     public String getCbUsername() {
         return CB_USERNAME;
     }
 
-    public void setCbUsername(String cbUsername) {
-        CB_USERNAME = cbUsername;
-    }
-
     public String getCbPassword() {
         return CB_PASSWORD;
-    }
-
-    public void setCbPassword(String cbPassword) {
-        CB_PASSWORD = cbPassword;
     }
 
     public String getAppVersion() {
         return appVersion;
     }
 
-    public void setAppVersion(String appVersion) {
-        CouchbaseConfig.appVersion = appVersion;
-    }
-
     public String getAppName() {
         return appName;
     }
 
-    public void setAppName(String appName) {
-        CouchbaseConfig.appName = appName;
+    public int getNoOfRetry() {
+        return NO_OF_RETRY;
+    }
+
+    public int getCbConnTimeout() {
+        return CB_CONN_TIMEOUT;
     }
 }
 

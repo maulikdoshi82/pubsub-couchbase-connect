@@ -1,29 +1,37 @@
 package com.infosys.connectors.clients;
 
 import com.infosys.connectors.config.SolaceSourceConfig;
-import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
-import com.solacesystems.jcsmp.JCSMPSession;
-import com.solacesystems.jcsmp.Topic;
+import com.solacesystems.jcsmp.*;
+
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class SolaceReceiverClient {
-    SolaceSourceConfig solConfig = new SolaceSourceConfig();
 
-    public Topic getTopic() {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SolaceReceiverClient.class);
+
+    SolaceSourceConfig solConfig = new SolaceSourceConfig();
+    private Topic topic;
+    private Queue queue;
+    private JCSMPSession session;
+
+    public Topic getTopicName() {
         return topic;
     }
 
-    public void setTopic(Topic topic) {
-        SolaceReceiverClient.topic = topic;
+    public Queue getQueueName() {
+        return queue;
     }
-
-    private static Topic topic;
-    private static JCSMPSession session;
 
     public JCSMPSession getSession() throws JCSMPException {
         solConfig.setProperties();
-        topic = JCSMPFactory.onlyInstance().createTopic(solConfig.getTopic());
+        LOGGER.info(solConfig.getReceiverType());
+        if (solConfig.getReceiverType().equalsIgnoreCase("QUEUE"))
+            queue = JCSMPFactory.onlyInstance().createQueue((solConfig.getQueueName()));
+        else
+            topic = JCSMPFactory.onlyInstance().createTopic(solConfig.getTopicName());
         session = JCSMPFactory.onlyInstance().createSession(solConfig.getProperties());
+        LOGGER.info("Session Connected");
         return session;
     }
 

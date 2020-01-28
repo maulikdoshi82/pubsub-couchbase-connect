@@ -34,7 +34,8 @@ public class CouchbaseAsSource {
         // Start solace session
         if (SolConnect) {
             try {
-                // If we are in a rollback scenario, rollback the partition and restart the stream.
+                // If we are in a rollback scenario, rollback the partition and restart the
+                // stream.
                 cbClient.controlEventHandler(new ControlEventHandler() {
                     @Override
                     public void onEvent(final ChannelFlowController flowController, final ByteBuf event) {
@@ -71,22 +72,26 @@ public class CouchbaseAsSource {
                     public void onEvent(ChannelFlowController flowController, ByteBuf event) {
                         if (DcpMutationMessage.is(event)) {
                             if (DcpMutationMessage.revisionSeqno(event) == 1) {
-                                LOGGER.info("New Record" + JsonObject.fromJson(
-                                        DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
+                                LOGGER.debug("New Record" + JsonObject
+                                        .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
-                                    solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
-                                    LOGGER.info("Sent Message::" + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    solClient
+                                            .sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    LOGGER.debug("Sent Message::"
+                                            + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
                             } else {
-                                LOGGER.info("Updated Record" + JsonObject.fromJson(
-                                        DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
+                                LOGGER.info("Updated Record" + JsonObject
+                                        .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
-                                    //content doesn't have the key.
-                                    //String message = DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
+                                    // content doesn't have the key.
+                                    // String message =
+                                    // DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
                                     solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
-                                    LOGGER.info("Sent Message::" + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    LOGGER.info("Sent Message::"
+                                            + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
@@ -113,10 +118,9 @@ public class CouchbaseAsSource {
                 cbClient.startStreaming().await();
                 LOGGER.info("Awaiting Stream");
 
-
             } catch (Exception ex) {
                 LOGGER.info("An exception occurred:: " + ex.getMessage());
-                if (cbClient.sessionState().equals(true)){
+                if (cbClient.sessionState().equals(true)) {
                     cbClient.stopStreaming();
                     cbClient.disconnect();
                 }

@@ -46,15 +46,18 @@ public class SolaceAsSource {
             try {
                 JCSMPSession session = solClient.getSession();
                 session.connect();
-                final CountDownLatch latch = new CountDownLatch(1); // used for synchronizing b/w threads
-                /** Only supports JsonMessage for now. Key field should be added in the message */
+                final CountDownLatch latch = new CountDownLatch(5); // used for synchronizing b/w threads
+                /**
+                 * Only supports JsonMessage for now. Key field should be added in the message
+                 */
                 final XMLMessageConsumer cons = session.getMessageConsumer(new XMLMessageListener() {
                     @Override
                     public void onReceive(BytesXMLMessage msg) {
                         if (msg instanceof TextMessage) {
-                            LOGGER.info("TextMessage received: " + ((TextMessage) msg).getText());
+                            LOGGER.debug("TextMessage received: " + ((TextMessage) msg).getText());
                             JsonObject jObj = JsonObject.fromJson(((TextMessage) msg).getText());
-                            cbClient.upsertDocument("test", jObj);
+                            String key = (String) jObj.get("key");
+                            cbClient.upsertDocument(key, jObj);
                             /** Acknowledging a message. Might be debatable **/
                             msg.ackMessage();
                             LOGGER.debug("Document saved in Couchbase::" + jObj.toString());
@@ -66,10 +69,10 @@ public class SolaceAsSource {
                     @Override
                     public void onException(JCSMPException e) {
                         LOGGER.error("Consumer received exception", e);
-                        latch.countDown();  // unblock main thread
+                        // latch.countDown(); // unblock main thread
                     }
                 });
-                session.addSubscription(solClient.getTopic());
+                session.addSubscription(solClient.getTopicName());
                 LOGGER.info("Solace & Couchbase are connected. Awaiting message...");
                 cons.start();
 
@@ -91,10 +94,12 @@ public class SolaceAsSource {
                 });
             } catch (JCSMPException jex) {
                 LOGGER.info("An Exception occured while connecting to Solace. Solace may not be running");
-                if (LOGGER.isTraceEnabled()) jex.printStackTrace();
+                if (LOGGER.isTraceEnabled())
+                    jex.printStackTrace();
             }
+        } else {
+            LOGGER.info("Couchbase is not connected. Shutting down connector");
         }
-        else{LOGGER.info("Couchbase is not connected. Shutting down connector");}
 
     }
 

@@ -10,6 +10,7 @@ public class SolaceProducerClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceProducerClient.class);
     private static XMLMessageProducer prod;
     private static Topic topic;
+    private static Queue queue;
     private static JCSMPSession session;
     SolaceSinkConfig scconfig = new SolaceSinkConfig();
 
@@ -34,10 +35,13 @@ public class SolaceProducerClient {
                     e.printStackTrace();
             }
         });
-        topic = JCSMPFactory.onlyInstance().createTopic(scconfig.getTopic());
-        LOGGER.debug("Solace Connected. You can now send message to topic: " + topic.getName());
+        if(scconfig.getReceiverType().equalsIgnoreCase("TOPIC"))
+            topic = JCSMPFactory.onlyInstance().createTopic(scconfig.getTopicName());
+        else
+            queue = JCSMPFactory.onlyInstance().createQueue(scconfig.getQueueName());
+        LOGGER.debug("Solace is connected. Awaiting message");
     } catch (JCSMPException ConnEx){
-        LOGGER.error("Connection error occured " + ConnEx.getLocalizedMessage());
+        LOGGER.error("Connection error occurred " + ConnEx.getLocalizedMessage());
         return false;
     }
         return true;
