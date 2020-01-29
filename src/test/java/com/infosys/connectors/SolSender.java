@@ -9,9 +9,9 @@ public class SolSender {
     private static Topic topic;
     private static JCSMPSession session;
     private static JCSMPProperties props = new JCSMPProperties();
-    private static int NO_OF_MESSAGES = 5;
+    private static int NO_OF_MESSAGES = 150;
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
 
         props.setProperty(JCSMPProperties.HOST, "tcp://mr1qvxdm3zqyo3.messaging.solace.cloud:21056");
         props.setProperty(JCSMPProperties.USERNAME, "solace-cloud-client");

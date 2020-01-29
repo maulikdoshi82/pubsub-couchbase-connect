@@ -26,7 +26,7 @@ import rx.Subscription;
 public class CouchbaseAsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseAsSource.class);
-
+    private static int countRecords = 0;
     public static void main(String[] args) {
         SolaceProducerClient solClient = new SolaceProducerClient();
         Client cbClient = new CouchbaseDcpClient().setClient();
@@ -34,7 +34,6 @@ public class CouchbaseAsSource {
         // Start solace session
         if (SolConnect) {
             try {
-                // If we are in a rollback scenario, rollback the partition and restart the
                 // stream.
                 cbClient.controlEventHandler(new ControlEventHandler() {
                     @Override
@@ -65,39 +64,35 @@ public class CouchbaseAsSource {
                         event.release();
                     }
                 });
-
                 // Send the Mutations to Solace
                 cbClient.dataEventHandler(new DataEventHandler() {
                     @Override
                     public void onEvent(ChannelFlowController flowController, ByteBuf event) {
                         if (DcpMutationMessage.is(event)) {
+                            countRecords++;
                             if (DcpMutationMessage.revisionSeqno(event) == 1) {
-                                LOGGER.debug("New Record" + JsonObject
+                                LOGGER.debug("Received New Record" + JsonObject
                                         .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
-                                    solClient
-                                            .sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                     LOGGER.debug("Sent Message::"
                                             + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
                             } else {
-                                LOGGER.info("Updated Record" + JsonObject
+                                LOGGER.debug("Updated Record" + JsonObject
                                         .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
-                                    // content doesn't have the key.
-                                    // String message =
-                                    // DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
                                     solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
-                                    LOGGER.info("Sent Message::"
+                                    LOGGER.debug("Sent Message::"
                                             + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
                             }
                         } else if (DcpDeletionMessage.is(event)) {
-                            LOGGER.info("Deleted Record: " + DcpDeletionMessage.keyString(event));
+                            LOGGER.debug("Deleted Record: " + DcpDeletionMessage.keyString(event));
                             try {
                                 solClient.sendMessage("DeletedRecordId::" + DcpDeletionMessage.keyString(event));
                             } catch (Exception ex) {
@@ -116,7 +111,7 @@ public class CouchbaseAsSource {
                 LOGGER.trace("Session State" + cbClient.sessionState());
                 // Start streaming on all partitions
                 cbClient.startStreaming().await();
-                LOGGER.info("Awaiting Stream");
+                LOGGER.info("Couchbase & Solace are connected. Awaiting Stream");
 
             } catch (Exception ex) {
                 LOGGER.info("An exception occurred:: " + ex.getMessage());
@@ -135,6 +130,7 @@ public class CouchbaseAsSource {
                         cbClient.stopStreaming();
                         cbClient.disconnect();
                     }
+                    LOGGER.info("Number of Records Processed::" + countRecords);
                     solClient.closeSession();
                     LOGGER.info("Connector shutdown. All clients disconnected");
                 }

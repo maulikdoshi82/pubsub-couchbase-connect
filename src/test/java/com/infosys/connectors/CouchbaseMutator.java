@@ -19,7 +19,8 @@ public class CouchbaseMutator {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseMutator.class);
     private static Cluster cluster;
     private static Bucket bucket;
-    private static int NO_OF_MESSAGES = 10000;
+    private static int NO_OF_MESSAGES = 150;
+    private static int PERF_TEST_MINUTES = 30;
     public boolean startCluster() {
         cluster = CouchbaseCluster.create("127.0.0.1");
         cluster.authenticate("Administrator", "password");
@@ -82,11 +83,15 @@ public class CouchbaseMutator {
         }
     }
 
-    public static void main(String  args[]){
+    public static void main(String[] args){
         CouchbaseMutator cbMutator = new CouchbaseMutator();
         boolean cbCon = cbMutator.startCluster();
         String key = "";
-        if(cbCon){
+        int countBatches=1;
+        long initiateTime = System.currentTimeMillis();
+        long currentTime = 0;
+        while(cbCon){
+            LOGGER.info("Sending next batch of records::" + countBatches);
             for (int i = 0; i < NO_OF_MESSAGES; i++) {
                 JSONObject obj = new JSONObject();
                 key = "" + i;
@@ -97,6 +102,20 @@ public class CouchbaseMutator {
                 obj.put("is_vip", new Boolean(true));
                 cbMutator.upsertDocument(key,JsonObject.fromJson(obj.toJSONString()));
             }
+            try {
+                currentTime = System.currentTimeMillis();
+                if((currentTime - initiateTime)  > (PERF_TEST_MINUTES * 60 * 1000)) //break the loop after PERF_TEST_MINUTES
+                    break;
+                long sleepTime = (((1000 * countBatches) + initiateTime) - currentTime); // wait for a second if not done yet.
+                if(sleepTime > 0)
+                    Thread.sleep(sleepTime);
+            }catch(Exception ex){
+                ex.printStackTrace();
+            }
+            countBatches++;
         }
+        LOGGER.info("Initiated Time::" + initiateTime);
+        LOGGER.info("End Time::" + currentTime);
+        LOGGER.info("Number of Batches Sent::" + countBatches);
     }
 }

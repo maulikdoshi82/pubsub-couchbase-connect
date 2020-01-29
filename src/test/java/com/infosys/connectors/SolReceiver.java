@@ -10,12 +10,12 @@ import java.util.concurrent.CountDownLatch;
 
 public class SolReceiver {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolReceiver.class);
-    private static int NO_OF_MESSAGES = 10000;
+    private static int NO_OF_MESSAGES = 150;
     private static File file = new File("/Volumes/SD/Solace/log/solreceiver"+ NO_OF_MESSAGES +".csv");
     private static Topic topic;
     private static JCSMPSession session;
     private static JCSMPProperties props = new JCSMPProperties();
-    public static void main(String args[]) {
+    public static void main(String[] args) {
 
         props.setProperty(JCSMPProperties.HOST, "tcp://mr1qvxdm3zqyo3.messaging.solace.cloud:21056");
         props.setProperty(JCSMPProperties.USERNAME, "solace-cloud-client");
