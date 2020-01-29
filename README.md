@@ -24,8 +24,10 @@
  
 Tip: You may run both together if only one topic is provided for Solace As Sink and Solace As Source. Do remember to keep a different bucket for Couchbase or else it'll go in infinite loop.
 
+# Completed Scope
+1. Finding the "eternal" key to storing multiple records in couchbase (Sink). - Key is added as a part of message and must be sent. 
+
 # Future Scope
 1. Running the connector in distributed mode.
-2. Finding the "eternal" key to storing multiple records in couchbase (Sink).
 
 Contributions/Issues/Suggestions are welcome.
