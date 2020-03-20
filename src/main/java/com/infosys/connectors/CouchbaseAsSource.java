@@ -22,6 +22,8 @@ import rx.Subscription;
 
 /**
  * This sample connector is based on java-dcp-client provided by couchbase
+ * The class connects Solace and Couchbase. It also registers a DCP Client to receive feed from Couchbase and push it to Solace.
+ * It does handle Solace shutdown. Queueing of Couchbase Messages is still pending.
  */
 public class CouchbaseAsSource {
 
@@ -34,7 +36,6 @@ public class CouchbaseAsSource {
         // Start solace session
         if (SolConnect) {
             try {
-                // stream.
                 cbClient.controlEventHandler(new ControlEventHandler() {
                     @Override
                     public void onEvent(final ChannelFlowController flowController, final ByteBuf event) {

@@ -5,6 +5,11 @@ import com.solacesystems.jcsmp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * It's a client for sending message to Solace.
+ * In connector code, Couchbase As a Source sends the DCP Received message to Solace Producer.
+ *  */
+
 public class SolaceProducerClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceProducerClient.class);

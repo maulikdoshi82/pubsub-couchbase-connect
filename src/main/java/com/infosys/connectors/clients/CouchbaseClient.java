@@ -31,8 +31,8 @@ import com.couchbase.client.core.config.ConfigurationException;
 import com.couchbase.client.java.error.*;
 
 /**
- * This example starts from the current point in time and publishes every change
- * that happens. This example is based on java-dcp-client provided by couchbase
+ * This is a sample couchbase client for storing documents in Couchbase.
+ * In connector code, CouchbaseAsSink uses it for storing records.
  */
 public class CouchbaseClient {
 

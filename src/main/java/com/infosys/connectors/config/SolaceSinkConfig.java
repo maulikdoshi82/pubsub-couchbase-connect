@@ -8,6 +8,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * This is a config class handling solace as a sink configuration.
+ */
+
 public class SolaceSinkConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceSinkConfig.class);
     private JCSMPProperties properties = new JCSMPProperties();

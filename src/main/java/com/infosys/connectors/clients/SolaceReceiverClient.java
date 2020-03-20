@@ -6,6 +6,11 @@ import com.solacesystems.jcsmp.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
+/**
+ * It's a client for receiving message to Solace.
+ * In connector code, Couchbase As a Sink receives message via Solace Receiver.
+ *  */
+
 public class SolaceReceiverClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceReceiverClient.class);

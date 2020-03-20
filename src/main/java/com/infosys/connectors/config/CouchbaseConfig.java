@@ -6,6 +6,10 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.util.Properties;
 
+/**
+ * This is a config class handling couchbase configuration.
+ */
+
 public class CouchbaseConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseConfig.class);
     private String CB_HOSTNAME;

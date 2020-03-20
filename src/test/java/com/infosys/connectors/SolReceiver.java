@@ -8,6 +8,10 @@ import java.sql.Timestamp;
 import com.opencsv.CSVWriter;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * It's a sample  class for receiving messages from Solace.
+ */
+
 public class SolReceiver {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolReceiver.class);
     private static int NO_OF_MESSAGES = 150;

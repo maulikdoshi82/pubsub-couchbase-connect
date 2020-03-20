@@ -33,6 +33,15 @@ import com.solacesystems.jcsmp.XMLMessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This sample connector is based on solace-JCSMP-client provided by Solace
+ * The class connects Solace and Couchbase. Receives message from Solace and sends it to Couchbase for storing.
+ * It does handle Solace and Couchbase shutdown.
+ * Current on Cb Shutdown - Connector shuts down.
+ * However in future, Connector should be able to create a DLQ or Sub-queue and put those
+ *  messages there for retrying and freeing up the main thread.
+ */
+
 public class SolaceAsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceAsSource.class);

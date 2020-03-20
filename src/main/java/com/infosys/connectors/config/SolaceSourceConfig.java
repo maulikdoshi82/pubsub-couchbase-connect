@@ -8,6 +8,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * This is a config class handling solace as a source configuration.
+ */
+
+
 public class SolaceSourceConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceSourceConfig.class);
     private JCSMPProperties properties = new JCSMPProperties();

@@ -5,6 +5,9 @@ import com.infosys.connectors.config.CouchbaseDcpConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ This class registers a Couchbase DCP Client
+ */
 public class CouchbaseDcpClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseDcpClient.class);

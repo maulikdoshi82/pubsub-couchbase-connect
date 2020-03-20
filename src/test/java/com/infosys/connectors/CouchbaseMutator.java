@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * It's a sample test class for performance testing of Connector. Set NO_OF_MESSAGES per second and over how long in PERF_TEST_MINUTES.
+ * Code will generate those many messages and save it to Couchbase for DCP Client to mutate.
+ */
+
 public class CouchbaseMutator {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseMutator.class);
     private static Cluster cluster;
