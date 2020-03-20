@@ -8,10 +8,26 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * This is a config class handling solace as a source configuration.
+ */
+
+
 public class SolaceSourceConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolaceSourceConfig.class);
-    static JCSMPProperties properties = new JCSMPProperties();
-    static String TOPIC_NAME = "cb/topic1";
+    private JCSMPProperties properties = new JCSMPProperties();
+    private String TOPIC_NAME = "cb/topic1";
+    private String RECEIVER_TYPE="queue"; //default is to queue
+    private String QUEUE_NAME = "cbtest";
+
+    public String getReceiverType() {
+        return RECEIVER_TYPE;
+    }
+
+    public String getQueueName() {
+        return QUEUE_NAME;
+    }
+
 
     public void setProperties() {
         String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
@@ -20,8 +36,11 @@ public class SolaceSourceConfig {
         try {
             Properties solConProps = new Properties();
             solConProps.load(new FileInputStream(sinkConfigPath));
-
-            TOPIC_NAME = solConProps.getProperty("sol.topics");
+            RECEIVER_TYPE = solConProps.getProperty("sol.receiver.type");
+            if(RECEIVER_TYPE.equalsIgnoreCase("queue"))
+                QUEUE_NAME = solConProps.getProperty("sol.queues");
+            else
+                TOPIC_NAME = solConProps.getProperty("sol.topics");
             properties.setProperty(JCSMPProperties.HOST, solConProps.getProperty("sol.host"));
             properties.setProperty(JCSMPProperties.USERNAME, solConProps.getProperty("sol.username"));
             properties.setProperty(JCSMPProperties.PASSWORD, solConProps.getProperty("sol.password"));
@@ -37,11 +56,8 @@ public class SolaceSourceConfig {
         return properties;
     }
 
-    public String getTopic(){
+    public String getTopicName(){
         return TOPIC_NAME;
     }
 
-    public void setTopic(String topic){
-        TOPIC_NAME = topic;
-    }
 }

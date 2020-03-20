@@ -25,9 +25,14 @@ import com.infosys.connectors.config.CouchbaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
+import com.couchbase.client.core.config.ConfigurationException;
+import com.couchbase.client.java.error.*;
+
 /**
- * This example starts from the current point in time and publishes every change that happens.
- * This example is based on java-dcp-client provided by couchbase
+ * This is a sample couchbase client for storing documents in Couchbase.
+ * In connector code, CouchbaseAsSink uses it for storing records.
  */
 public class CouchbaseClient {
 
@@ -35,29 +40,68 @@ public class CouchbaseClient {
     private static Cluster cluster;
     private static Bucket bucket;
 
-    public boolean startCluster(){
-        try {
-            CouchbaseConfig cbConfig = new CouchbaseConfig();
-            cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
-            cluster.authenticate(cbConfig.getCbUsername(), cbConfig.getCbPassword());
-            bucket = cluster.openBucket(cbConfig.getCbBucket());
+    public boolean startCluster() {
+        CouchbaseConfig cbConfig = new CouchbaseConfig();
+        cluster = CouchbaseCluster.create(cbConfig.getCbHostname());
+        cluster.authenticate(cbConfig.getCbUsername(), cbConfig.getCbPassword());
+        int i = 0;
+        for (i = 0; i < cbConfig.getNoOfRetry(); i++) {
+            try {
+                bucket = cluster.openBucket(cbConfig.getCbBucket(), cbConfig.getCbConnTimeout(), TimeUnit.MILLISECONDS);
+                break;
+            } catch (Exception ex) {
+
+                if (LOGGER.isDebugEnabled())
+                    ex.printStackTrace();
+
+                if (ex instanceof ConfigurationException) {
+                    String cause = "" + ex.getCause();
+                    if (cause.contains("Connection refused")) {
+                        LOGGER.error("Couchbase Server is not running @" + cbConfig.getCbHostname());
+                        i = cbConfig.getNoOfRetry();
+                    } else {
+                        LOGGER.error(ex.getMessage() + " cause" + ex.getCause());
+                    }
+                } else if (ex instanceof InvalidPasswordException) {
+                    LOGGER.error("Invalid Authentication for Couchbase Server. Please check User/Password.");
+                } else if (ex instanceof BucketDoesNotExistException) {
+                    LOGGER.error("Bucket does not exist::" + cbConfig.getCbBucket());
+                    i = cbConfig.getNoOfRetry();
+                } else {
+                    LOGGER.error("An exception is thrown " + ex.getMessage()
+                            + " .For detailed root cause, enable Debug Mode");
+                }
+
+                if (i < cbConfig.getNoOfRetry()) {
+                    LOGGER.info("No of Attempt:: " + (i + 1) + " in " + (1000 * (i + 1)) + " Millis");
+                    try {
+                        Thread.sleep(1000 * (i + 1));
+                    } catch (InterruptedException iex) {
+                        LOGGER.error("Exception caught while retrying. Someone woke me up");
+                    }
+                }
+            }
+        }
+        if (i < cbConfig.getNoOfRetry()) {
+            System.out.println("Did this work too?");
             bucket.bucketManager().createN1qlPrimaryIndex(true, false);
-            LOGGER.debug("Bucket Opened" + bucket.name());
             return true;
         }
-        catch(Exception ex)
-        {
-            LOGGER.info("Error occured while connecting to Couchbase");
-            return false;
-        }
+        return false;
     }
 
-    public void shutDownConnector(){
+    public void shutDownConnector() {
         bucket.close();
         cluster.disconnect();
     }
+
     public void upsertDocument(String key, JsonObject doc) {
-        bucket.upsert(JsonDocument.create(key, doc));
+        try {
+            doc.put("cb_received_time", ("" + new Timestamp(System.currentTimeMillis())));
+            bucket.upsert(JsonDocument.create(key, doc));
+        } catch (RuntimeException tex) {
+            LOGGER.error("TimeOut");
+        }
     }
 
 }

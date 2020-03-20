@@ -22,11 +22,13 @@ import rx.Subscription;
 
 /**
  * This sample connector is based on java-dcp-client provided by couchbase
+ * The class connects Solace and Couchbase. It also registers a DCP Client to receive feed from Couchbase and push it to Solace.
+ * It does handle Solace shutdown. Queueing of Couchbase Messages is still pending.
  */
 public class CouchbaseAsSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseAsSource.class);
-
+    private static int countRecords = 0;
     public static void main(String[] args) {
         SolaceProducerClient solClient = new SolaceProducerClient();
         Client cbClient = new CouchbaseDcpClient().setClient();
@@ -34,7 +36,6 @@ public class CouchbaseAsSource {
         // Start solace session
         if (SolConnect) {
             try {
-                // If we are in a rollback scenario, rollback the partition and restart the stream.
                 cbClient.controlEventHandler(new ControlEventHandler() {
                     @Override
                     public void onEvent(final ChannelFlowController flowController, final ByteBuf event) {
@@ -64,35 +65,35 @@ public class CouchbaseAsSource {
                         event.release();
                     }
                 });
-
                 // Send the Mutations to Solace
                 cbClient.dataEventHandler(new DataEventHandler() {
                     @Override
                     public void onEvent(ChannelFlowController flowController, ByteBuf event) {
                         if (DcpMutationMessage.is(event)) {
+                            countRecords++;
                             if (DcpMutationMessage.revisionSeqno(event) == 1) {
-                                LOGGER.info("New Record" + JsonObject.fromJson(
-                                        DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
+                                LOGGER.debug("Received New Record" + JsonObject
+                                        .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
                                     solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
-                                    LOGGER.info("Sent Message::" + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    LOGGER.debug("Sent Message::"
+                                            + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
                             } else {
-                                LOGGER.info("Updated Record" + JsonObject.fromJson(
-                                        DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
+                                LOGGER.debug("Updated Record" + JsonObject
+                                        .fromJson(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8)));
                                 try {
-                                    //content doesn't have the key.
-                                    //String message = DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8);
                                     solClient.sendMessage(DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
-                                    LOGGER.info("Sent Message::" + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
+                                    LOGGER.debug("Sent Message::"
+                                            + DcpMutationMessage.content(event).toString(CharsetUtil.UTF_8));
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
                             }
                         } else if (DcpDeletionMessage.is(event)) {
-                            LOGGER.info("Deleted Record: " + DcpDeletionMessage.keyString(event));
+                            LOGGER.debug("Deleted Record: " + DcpDeletionMessage.keyString(event));
                             try {
                                 solClient.sendMessage("DeletedRecordId::" + DcpDeletionMessage.keyString(event));
                             } catch (Exception ex) {
@@ -111,12 +112,11 @@ public class CouchbaseAsSource {
                 LOGGER.trace("Session State" + cbClient.sessionState());
                 // Start streaming on all partitions
                 cbClient.startStreaming().await();
-                LOGGER.info("Awaiting Stream");
-
+                LOGGER.info("Couchbase & Solace are connected. Awaiting Stream");
 
             } catch (Exception ex) {
                 LOGGER.info("An exception occurred:: " + ex.getMessage());
-                if (cbClient.sessionState().equals(true)){
+                if (cbClient.sessionState().equals(true)) {
                     cbClient.stopStreaming();
                     cbClient.disconnect();
                 }
@@ -131,6 +131,7 @@ public class CouchbaseAsSource {
                         cbClient.stopStreaming();
                         cbClient.disconnect();
                     }
+                    LOGGER.info("Number of Records Processed::" + countRecords);
                     solClient.closeSession();
                     LOGGER.info("Connector shutdown. All clients disconnected");
                 }

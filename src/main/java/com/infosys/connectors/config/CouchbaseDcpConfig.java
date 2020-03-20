@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.util.Properties;
 
+/**
+ * This is a config class handling couchbase dcp configuration.
+ */
 public class CouchbaseDcpConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchbaseDcpConfig.class);
     private static String CB_HOSTNAME;
